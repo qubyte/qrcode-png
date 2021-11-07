@@ -1,0 +1,14 @@
+{
+  "name": "qrcode-png",
+  "version": "0.0.0",
+  "description": "Make a QR code PNG from a string.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mark S. Everitt",
+  "license": "MIT",
+  "dependencies": {
+    "qrcode-svg": "^1.1.0"
+  }
+}
