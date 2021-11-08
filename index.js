@@ -39,7 +39,29 @@ function makeChunk(name, data) {
   return Buffer.concat([lengthBuffer, nameAndData, crc32Buffer]);
 }
 
-function buildQrPng(data, width, height) {
+function buildScanLine(row) {
+  // A bit depth of 1 allows 8 pixels to be packed into one byte. When the
+  // width is not divisible by 8, the last bite will have trailing low bits.
+  // The first byte of the scanline is the filter byte.
+  const nBytes = Math.ceil(row.length / 8);
+  const buffer = Buffer.alloc(nBytes + 1);
+
+  // The filter byte.
+  buffer[0] = 0;
+
+  for (let n = 0; n < nBytes; n++) {
+    for (let i = 0; i < 8; i++) {
+      if (row[n * 8 + i]) {
+        // Flip bits in the same order as the row.
+        buffer[n + 1] |= 1 << (7 - i);
+      }
+    }
+  }
+
+  return buffer;
+}
+
+function buildQrPng({ data, width, height, background, color }) {
   if (data.length !== width * height) {
     throw new Error("Unexpected length");
   }
@@ -47,24 +69,19 @@ function buildQrPng(data, width, height) {
   const IHDRData = Buffer.alloc(13);
   IHDRData.writeUInt32BE(width, 0);
   IHDRData.writeUInt32BE(height, 4);
-  IHDRData[8] = 8; // bit depth, TODO: make this 1 if possible.
+  IHDRData[8] = 1; // bit depth (two possible pixel colors)
   IHDRData[9] = 3; // color type 3 (palette)
   IHDRData[10] = 0; // compression
   IHDRData[11] = 0; // filter
   IHDRData[12] = 0; // interlace (off)
 
-  const scanlines = Buffer.alloc((width + 1) * height);
+  const scanlines = [];
 
-  for (let n = 0, i = 0; n < data.length; n++, i++) {
-    if (n % width === 0) {
-      scanlines[i] = 0; // filter byte prepended to each scanline.
-      i += 1;
-    }
-
-    scanlines[i] = data[n] ? 1 : 0;
+  for (let offset = 0; offset < width * height; offset += width) {
+    scanlines.push(buildScanLine(data.slice(offset, offset + width)));
   }
 
-  const deflated = zlib.deflateSync(scanlines, {
+  const deflated = zlib.deflateSync(Buffer.concat(scanlines), {
     chunkSize: 32 * 1024,
     level: 9,
     strategy: zlib.constants.Z_RLE
@@ -73,13 +90,17 @@ function buildQrPng(data, width, height) {
   return Buffer.concat([
     PREAMBLE,
     makeChunk('IHDR', IHDRData),
-    makeChunk('PLTE', Buffer.from('FFFFFF000000', 'hex')), // rgb
+    makeChunk('PLTE', Buffer.from([...background, ...color])), // rgb
     makeChunk('IDAT', deflated),
     IEND
   ]);
 }
 
-function makeQrPng(content) {
+function isValidByte(n) {
+  return Number.isInteger(n) && n >= 0 && n < 256;
+}
+
+function makeQrPng(content, options) {
   const qr = new QRCode(content);
   const length = qr.qrcode.modules.length;
   const data = [];
@@ -90,7 +111,18 @@ function makeQrPng(content) {
     }
   }
 
-  return buildQrPng(data, length, length);
+  const background = options && options.background || [255, 255, 255];
+  const color = options && options.color || [0, 0, 0];
+
+  if (background.length !== 3 || !background.every(isValidByte)) {
+    throw new Error('background must be a length 3 array with elements in range 0-255.');
+  }
+
+  if (color.length !== 3 || !color.every(isValidByte)) {
+    throw new Error('color must be a length 3 with elements in range 0-255.');
+  }
+
+  return buildQrPng({ data, width: length, height: length, background, color });
 };
 
 module.exports = makeQrPng;
