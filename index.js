@@ -99,10 +99,22 @@ function buildQrPng({ data, background, color }) {
     strategy: 3
   });
 
+  const backgroundRgb = background.slice(0, 3);
+  const backgroundAlpha = typeof background[3] === "number" ? background[3] : 255;
+  const colorRgb = color.slice(0, 3);
+  const colorAlpha = typeof color[3] === "number" ? color[3] : 255;
+  const hasAlpha = backgroundAlpha !== 255 || colorAlpha !== 255;
+
+  // When no colors in the palette have an associated alpha value, we can skip
+  // the tRNS (transparency) chunk completely.
+
   return Uint8Array.of(
     ...PREAMBLE,
     ...makeChunk('IHDR', IHDRData),
-    ...makeChunk('PLTE', [...background, ...color]), // rgb
+    ...makeChunk('PLTE', [...backgroundRgb, ...colorRgb]),
+    // When no colors in the palette have an associated alpha value, we can skip
+    // the tRNS (transparency) chunk completely.
+    ...(hasAlpha ? makeChunk("tRNS", [backgroundAlpha, colorAlpha]) : []), // alpha
     ...makeChunk('IDAT', deflated),
     ...IEND
   );
@@ -127,12 +139,12 @@ function makeQrPng(options) {
     qr = new QRCode(qrOptions);
   }
 
-  if (background.length !== 3 || !background.every(isValidByte)) {
-    throw new Error('background must be a length 3 array with elements in range 0-255.');
+  if ((background.length !== 3 && background.length !== 4) || !background.every(isValidByte)) {
+    throw new Error('background must be a length 3 or 4 array with elements in range 0-255.');
   }
 
-  if (color.length !== 3 || !color.every(isValidByte)) {
-    throw new Error('color must be a length 3 with elements in range 0-255.');
+  if ((color.length !== 3 && color.length !== 4) || !color.every(isValidByte)) {
+    throw new Error('color must be a length 3 or 4 with elements in range 0-255.');
   }
 
   const data = qr.qrcode.modules;

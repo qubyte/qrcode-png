@@ -23,8 +23,8 @@ Options is a string (the content), or an object with these fields:
 
 * **content** - QR Code content, required.
 * **padding** - Background colored padding around the QR code, `4` modules by default, `0` for no border.
-* **color** - color of modules (squares), a length 3 array RGB values in the range 0-255, e.g. `[0, 0, 0]` for black.
-* **background** - color of background, a length 3 array RGB values in the range 0-255, e.g. `[255, 255, 255]` for white.
+* **color** - color of modules (squares), a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[0, 0, 0]` for black.
+* **background** - color of background, a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[255, 255, 255]` for white.
 * **ecl** - error correction level: `L`, `M`, `H`, `Q`
 
 ## Writing to a file
