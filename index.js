@@ -100,19 +100,20 @@ function isValidByte(n) {
   return Number.isInteger(n) && n >= 0 && n < 256;
 }
 
-function makeQrPng(content, options) {
-  const qr = new QRCode(content);
-  const length = qr.qrcode.modules.length;
-  const data = [];
+function makeQrPng(options) {
+  let qr;
+  let color;
+  let background;
+  let qrOptions;
 
-  for (let i = 0; i < length; i++) {
-    for (let j = 0; j < length; j++) {
-      data.push(qr.qrcode.modules[j][i]);
-    }
+  if (typeof options === 'string') {
+    qr = new QRCode(options);
+    color = [0, 0, 0];
+    background = [255, 255, 255];
+  } else {
+    ({ color = [0, 0, 0], background = [255, 255, 255], ...qrOptions } = options);
+    qr = new QRCode(qrOptions);
   }
-
-  const background = options && options.background || [255, 255, 255];
-  const color = options && options.color || [0, 0, 0];
 
   if (background.length !== 3 || !background.every(isValidByte)) {
     throw new Error('background must be a length 3 array with elements in range 0-255.');
@@ -120,6 +121,15 @@ function makeQrPng(content, options) {
 
   if (color.length !== 3 || !color.every(isValidByte)) {
     throw new Error('color must be a length 3 with elements in range 0-255.');
+  }
+
+  const length = qr.qrcode.modules.length;
+  const data = [];
+
+  for (let i = 0; i < length; i++) {
+    for (let j = 0; j < length; j++) {
+      data.push(qr.qrcode.modules[j][i]);
+    }
   }
 
   return buildQrPng({ data, width: length, height: length, background, color });
