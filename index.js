@@ -63,7 +63,7 @@ function buildScanLines(data, width, height) {
 
     for (let n = 0; n < nBytesPerRow - 1; n++) {
       for (let i = 0; i < 8; i++) {
-        if (data[scanline * width + n * 8 + i]) {
+        if (data[scanline][n * 8 + i]) {
           // Flip bits in the same order as the row.
           buffer[offset + n + 1] |= 1 << (7 - i);
         }
@@ -74,11 +74,9 @@ function buildScanLines(data, width, height) {
   return buffer;
 }
 
-function buildQrPng({ data, width, height, background, color }) {
-  if (data.length !== width * height) {
-    throw new Error("Unexpected length");
-  }
-
+function buildQrPng({ data, background, color }) {
+  const height = data.length;
+  const width = height;
   const IHDRData = Uint8Array.of(
     255 & (width >> 24), // Big endian 32 bit unsigned integer.
     255 & (width >> 16),
@@ -137,16 +135,9 @@ function makeQrPng(options) {
     throw new Error('color must be a length 3 with elements in range 0-255.');
   }
 
-  const length = qr.qrcode.modules.length;
-  const data = [];
+  const data = qr.qrcode.modules;
 
-  for (let i = 0; i < length; i++) {
-    for (let j = 0; j < length; j++) {
-      data.push(qr.qrcode.modules[j][i]);
-    }
-  }
-
-  return buildQrPng({ data, width: length, height: length, background, color });
+  return buildQrPng({ data, background, color });
 };
 
 module.exports = makeQrPng;
