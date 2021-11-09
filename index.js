@@ -1,10 +1,10 @@
 "use strict";
 
-const zlib = require('zlib');
+const pako = require('pako');
 const QRCode = require('qrcode-svg');
 
-const PREAMBLE = Buffer.from('89504E470D0A1A0A', 'hex');
-const IEND = Buffer.from('0000000049454E44AE426082', 'hex');
+const PREAMBLE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
+const IEND = Uint8Array.of(0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130);
 const crcTable = new Int32Array(256);
 
 // http://www.libpng.org/pub/png/spec/1.2/PNG-CRCAppendix.html
@@ -29,31 +29,44 @@ function crc32(buffer) {
 }
 
 function makeChunk(name, data) {
-  const nameAndData = Buffer.concat([Buffer.from(name), data]);
-  const lengthBuffer = Buffer.alloc(4);
-  lengthBuffer.writeUInt32BE(data.length);
+  const nameAndData = Uint8Array.of(
+    ...Array.from(name, s => s.charCodeAt(0)),
+    ...data
+  );
+  const crc = crc32(nameAndData);
 
-  const crc32Buffer = Buffer.alloc(4);
-  crc32Buffer.writeInt32BE(crc32(nameAndData));
-
-  return Buffer.concat([lengthBuffer, nameAndData, crc32Buffer]);
+  return Uint8Array.of(
+    0xff & (data.length >> 24), // Big endian 32 bit unsigned integer.
+    0xff & (data.length >> 16),
+    0xff & (data.length >> 8),
+    0xff & data.length,
+    ...nameAndData,
+    0xff & (crc >> 24), // Big endian 32 bit unsigned integer.
+    0xff & (crc >> 16),
+    0xff & (crc >> 8),
+    0xff & crc
+  );
 }
 
-function buildScanLine(row) {
+function buildScanLines(data, width, height) {
   // A bit depth of 1 allows 8 pixels to be packed into one byte. When the
   // width is not divisible by 8, the last bite will have trailing low bits.
   // The first byte of the scanline is the filter byte.
-  const nBytes = Math.ceil(row.length / 8);
-  const buffer = Buffer.alloc(nBytes + 1);
+  const nBytesPerRow = 1 + Math.ceil(width / 8);
+  const buffer = new Uint8Array(nBytesPerRow * height);
 
-  // The filter byte.
-  buffer[0] = 0;
+  for (let scanline = 0; scanline < height; scanline++) {
+    const offset = nBytesPerRow * scanline;
 
-  for (let n = 0; n < nBytes; n++) {
-    for (let i = 0; i < 8; i++) {
-      if (row[n * 8 + i]) {
-        // Flip bits in the same order as the row.
-        buffer[n + 1] |= 1 << (7 - i);
+    // The filter byte.
+    buffer[offset] = 0;
+
+    for (let n = 0; n < nBytesPerRow - 1; n++) {
+      for (let i = 0; i < 8; i++) {
+        if (data[scanline * width + n * 8 + i]) {
+          // Flip bits in the same order as the row.
+          buffer[offset + n + 1] |= 1 << (7 - i);
+        }
       }
     }
   }
@@ -66,34 +79,35 @@ function buildQrPng({ data, width, height, background, color }) {
     throw new Error("Unexpected length");
   }
 
-  const IHDRData = Buffer.alloc(13);
-  IHDRData.writeUInt32BE(width, 0);
-  IHDRData.writeUInt32BE(height, 4);
-  IHDRData[8] = 1; // bit depth (two possible pixel colors)
-  IHDRData[9] = 3; // color type 3 (palette)
-  IHDRData[10] = 0; // compression
-  IHDRData[11] = 0; // filter
-  IHDRData[12] = 0; // interlace (off)
+  const IHDRData = Uint8Array.of(
+    255 & (width >> 24), // Big endian 32 bit unsigned integer.
+    255 & (width >> 16),
+    255 & (width >> 8),
+    255 & width,
+    255 & (height >> 24), // Big endian 32 bit unsigned integer.
+    255 & (height >> 16),
+    255 & (height >> 8),
+    255 & height,
+    1, // bit depth (two possible pixel colors)
+    3, // color type 3 (palette)
+    0, // compression
+    0, // filter
+    0  // interlace (off)
+  );
 
-  const scanlines = [];
-
-  for (let offset = 0; offset < width * height; offset += width) {
-    scanlines.push(buildScanLine(data.slice(offset, offset + width)));
-  }
-
-  const deflated = zlib.deflateSync(Buffer.concat(scanlines), {
-    chunkSize: 32 * 1024,
+  const scanlines = buildScanLines(data, width, height);
+  const deflated = pako.deflate(scanlines, {
     level: 9,
-    strategy: zlib.constants.Z_RLE
+    strategy: 3
   });
 
-  return Buffer.concat([
-    PREAMBLE,
-    makeChunk('IHDR', IHDRData),
-    makeChunk('PLTE', Buffer.from([...background, ...color])), // rgb
-    makeChunk('IDAT', deflated),
-    IEND
-  ]);
+  return Uint8Array.of(
+    ...PREAMBLE,
+    ...makeChunk('IHDR', IHDRData),
+    ...makeChunk('PLTE', [...background, ...color]), // rgb
+    ...makeChunk('IDAT', deflated),
+    ...IEND
+  );
 }
 
 function isValidByte(n) {
