@@ -28,23 +28,26 @@ function crc32(buffer) {
   return crc32;
 }
 
+function numberToNetworkOrderBytes(number, byteLength) {
+  const bytes = new Uint8Array(byteLength);
+
+  for (let i = 0; i < byteLength; i++) {
+    bytes[i] = 255 & (number >> (8 * (3 - i)));
+  }
+
+  return bytes;
+}
+
 function makeChunk(name, data) {
   const nameAndData = Uint8Array.of(
     ...Array.from(name, s => s.charCodeAt(0)),
     ...data
   );
-  const crc = crc32(nameAndData);
 
   return Uint8Array.of(
-    0xff & (data.length >> 24), // Big endian 32 bit unsigned integer.
-    0xff & (data.length >> 16),
-    0xff & (data.length >> 8),
-    0xff & data.length,
+    ...numberToNetworkOrderBytes(data.length, 4),
     ...nameAndData,
-    0xff & (crc >> 24), // Big endian 32 bit unsigned integer.
-    0xff & (crc >> 16),
-    0xff & (crc >> 8),
-    0xff & crc
+    ...numberToNetworkOrderBytes(crc32(nameAndData), 4)
   );
 }
 
@@ -78,14 +81,8 @@ function buildQrPng({ data, background, color }) {
   const height = data.length;
   const width = height;
   const IHDRData = Uint8Array.of(
-    255 & (width >> 24), // Big endian 32 bit unsigned integer.
-    255 & (width >> 16),
-    255 & (width >> 8),
-    255 & width,
-    255 & (height >> 24), // Big endian 32 bit unsigned integer.
-    255 & (height >> 16),
-    255 & (height >> 8),
-    255 & height,
+    ...numberToNetworkOrderBytes(width, 4),
+    ...numberToNetworkOrderBytes(height, 4),
     1, // bit depth (two possible pixel colors)
     3, // color type 3 (palette)
     0, // compression
