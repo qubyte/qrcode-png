@@ -5,9 +5,12 @@
   "type": "module",
   "main": "index.js",
   "exports": {
-    ".": "./index.js"
+    "import": "./index.js",
+    "require": "./index.cjs"
   },
+  "files": ["index.cjs"],
   "scripts": {
+    "prepublishOnly": "rollup -c",
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,7 +21,9 @@
     "qrcode-svg": "^1.1.0"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^21.0.1",
     "eslint": "^8.2.0",
-    "eslint-config-qubyte": "^4.1.0"
+    "eslint-config-qubyte": "^4.1.0",
+    "rollup": "^2.59.0"
   }
 }
