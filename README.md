@@ -14,7 +14,15 @@ npm i qrcode-png
 ```javascript
 const qrcode = require('qrcode-png');
 
-const pngBuffer = qrcode(options);
+const pngTypedArray = qrcode(options);
+```
+
+The return value of `qrcode` is an instance of `Uint8Array`. If you're using it
+in Node.js, many core libraries will accept it as a substitute for a buffer. Any
+time you need a buffer you can wrap the `Uint8Array` in one:
+
+```javascript
+const pngBuffer = Buffer.from(qrcode(options));
 ```
 
 ## Options:
@@ -29,20 +37,27 @@ Options is a string (the content), or an object with these fields:
 
 ## Writing to a file
 
-This library returns a buffer, which you can pass directly to an `fs` method.
+This library returns a TypedArray, which you can pass directly to an `fs`
+method.
 
 ```javascript
 const fs = require('fs');
 const qrcode = require('qrcode-png');
 
-const pngBuffer = qrcode(options);
+const pngTypedArray = qrcode(options);
 
-fs.writeFileSync('./my-qr-code.png', pngBuffer);
+fs.writeFileSync('./my-qr-code.png', pngTypedArray);
 ```
 
 ## Use in the browser
 
-This library produces PNGs with a pixel permodule (square). To be useful the
+To use this library in the browser it must be bundled with [pako] and
+[qrcode-svg]. A bundler such as webpack or rollup with CommonJS and node module
+resolution plugins will do the job.
+
+## About the images produced
+
+This library produces PNGs with a pixel per module (square). To be useful the
 width and height should be set, and some styles applied to avoid it looking
 blurry.
 
@@ -64,9 +79,20 @@ img.qr {
 
 If you want to inline the png in your HTML, convert it to a data URL:
 
-```javascript
-const qrcode = require('qrcode-png');
-const pngBuffer = qrcode("Hello, world!");
+In Node:
 
+```javascript
+const pngBuffer = Buffer.from(qrcode("Hello, world!"));
 const dataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 ```
+
+In a browser (also works in Node 16+, but it's [better to use a buffer]
+there):
+
+```javascript
+const pngTypedArray = qrcode("Hello, world!");
+const dataUrl = `data:image/png;base64,${atob(String.fromCharCode(...dat))}`;
+```
+
+[qrcode-svg]: https://npmjs.com/package/qrcode-svg
+[better to use a buffer]: https://nodejs.org/dist/latest-v16.x/docs/api/globals.html#atobdata
