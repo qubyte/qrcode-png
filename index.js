@@ -1,7 +1,5 @@
-"use strict";
-
-const pako = require('pako');
-const QRCode = require('qrcode-svg');
+import { deflate } from 'pako';
+import QRCode from 'qrcode-svg';
 
 const PREAMBLE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
 const IEND = Uint8Array.of(0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130);
@@ -19,7 +17,7 @@ function crc32(buffer) {
   let crc32 = -1;
 
   for (let i = 0, len = buffer.length; i < len; i++) {
-    const index = (crc32 ^ buffer[i]) & 0xff;
+    const index = (crc32 ^ buffer[i]) & 255;
     crc32 = (crc32 >>> 8) ^ crcTable[index];
   }
 
@@ -29,7 +27,7 @@ function crc32(buffer) {
 }
 
 function makeChunk(name, data) {
-  const chunk = new Uint8Array(4 + name.length + data.length + 4)
+  const chunk = new Uint8Array(4 + name.length + data.length + 4);
   const view = new DataView(chunk.buffer);
   const nameOffset = 4;
   const dataOffset = nameOffset + name.length;
@@ -83,13 +81,13 @@ function buildScanLines(data, width, height) {
 
 function makeHeaderData(width, height) {
   const IHDRData = Uint8Array.of(
-    0,0,0,0, // The width will go here.
-    0,0,0,0, // The height will go here.
+    0, 0, 0, 0, // The width will go here.
+    0, 0, 0, 0, // The height will go here.
     1, // bit depth (two possible pixel colors)
     3, // color type 3 (palette)
     0, // compression
     0, // filter
-    0  // interlace (off)
+    0 // interlace (off)
   );
 
   // Width and height are set in network byte order.
@@ -101,7 +99,7 @@ function makeHeaderData(width, height) {
 }
 
 function makeIdatData(data, width, height) {
-  return pako.deflate(buildScanLines(data, width, height), { level: 9, strategy: 3 });
+  return deflate(buildScanLines(data, width, height), { level: 9, strategy: 3 });
 }
 
 function buildQrPng({ data, background, color }) {
@@ -109,9 +107,9 @@ function buildQrPng({ data, background, color }) {
   const width = height;
 
   const backgroundRgb = background.slice(0, 3);
-  const backgroundAlpha = typeof background[3] === "number" ? background[3] : 255;
+  const backgroundAlpha = typeof background[3] === 'number' ? background[3] : 255;
   const colorRgb = color.slice(0, 3);
-  const colorAlpha = typeof color[3] === "number" ? color[3] : 255;
+  const colorAlpha = typeof color[3] === 'number' ? color[3] : 255;
   const hasAlpha = backgroundAlpha !== 255 || colorAlpha !== 255;
 
   // When no colors in the palette have an associated alpha value, we can skip
@@ -123,7 +121,7 @@ function buildQrPng({ data, background, color }) {
     ...makeChunk('PLTE', [...backgroundRgb, ...colorRgb]),
     // When no colors in the palette have an associated alpha value, we can skip
     // the tRNS (transparency) chunk completely.
-    ...(hasAlpha ? makeChunk("tRNS", [backgroundAlpha, colorAlpha]) : []), // alpha
+    ...(hasAlpha ? makeChunk('tRNS', [backgroundAlpha, colorAlpha]) : []), // alpha
     ...makeChunk('IDAT', makeIdatData(data, width, height)),
     ...IEND
   );
@@ -133,7 +131,7 @@ function isValidByte(n) {
   return Number.isInteger(n) && n >= 0 && n < 256;
 }
 
-function makeQrPng(options) {
+export default function makeQrPng(options) {
   let qr;
   let color;
   let background;
@@ -159,6 +157,4 @@ function makeQrPng(options) {
   const data = qr.qrcode.modules;
 
   return buildQrPng({ data, background, color });
-};
-
-module.exports = makeQrPng;
+}

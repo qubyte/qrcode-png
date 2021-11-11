@@ -1,0 +1,9 @@
+{
+  "extends": "qubyte/ES2018-module",
+  "env": {
+    "browser": true
+  },
+  "rules": {
+    "no-bitwise": "off"
+  }
+}
