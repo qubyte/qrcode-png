@@ -28,27 +28,31 @@ function crc32(buffer) {
   return crc32;
 }
 
-function numberToNetworkOrderBytes(number, byteLength) {
-  const bytes = new Uint8Array(byteLength);
+function makeChunk(name, data) {
+  const chunk = new Uint8Array(4 + name.length + data.length + 4)
+  const view = new DataView(chunk.buffer);
+  const nameOffset = 4;
+  const dataOffset = nameOffset + name.length;
+  const crcOffset = dataOffset + data.length;
 
-  for (let i = 0; i < byteLength; i++) {
-    bytes[i] = 255 & (number >> (8 * (3 - i)));
+  // Set the length bytes.
+  view.setUint32(0, data.length, false);
+
+  // Set the name bytes.
+  for (let i = 0, len = name.length; i < len; i++) {
+    chunk[nameOffset + i] = name[i].charCodeAt(0);
   }
 
-  return bytes;
-}
+  // Set the data bytes.
+  chunk.set(data, dataOffset);
 
-function makeChunk(name, data) {
-  const nameAndData = Uint8Array.of(
-    ...Array.from(name, s => s.charCodeAt(0)),
-    ...data
-  );
+  // Calculate the CRC from the name and data bytes.
+  const crc = crc32(chunk.subarray(nameOffset, crcOffset));
 
-  return Uint8Array.of(
-    ...numberToNetworkOrderBytes(data.length, 4),
-    ...nameAndData,
-    ...numberToNetworkOrderBytes(crc32(nameAndData), 4)
-  );
+  // Set the CRC bytes.
+  view.setUint32(crcOffset, crc);
+
+  return chunk;
 }
 
 function buildScanLines(data, width, height) {
@@ -68,7 +72,7 @@ function buildScanLines(data, width, height) {
       for (let i = 0; i < 8; i++) {
         if (data[scanline][n * 8 + i]) {
           // Flip bits in the same order as the row.
-          buffer[offset + n + 1] |= 1 << (7 - i);
+          buffer[offset + n + 1] += 1 << (7 - i);
         }
       }
     }
@@ -77,12 +81,10 @@ function buildScanLines(data, width, height) {
   return buffer;
 }
 
-function buildQrPng({ data, background, color }) {
-  const height = data.length;
-  const width = height;
+function makeHeaderData(width, height) {
   const IHDRData = Uint8Array.of(
-    ...numberToNetworkOrderBytes(width, 4),
-    ...numberToNetworkOrderBytes(height, 4),
+    0,0,0,0, // The width will go here.
+    0,0,0,0, // The height will go here.
     1, // bit depth (two possible pixel colors)
     3, // color type 3 (palette)
     0, // compression
@@ -90,11 +92,21 @@ function buildQrPng({ data, background, color }) {
     0  // interlace (off)
   );
 
-  const scanlines = buildScanLines(data, width, height);
-  const deflated = pako.deflate(scanlines, {
-    level: 9,
-    strategy: 3
-  });
+  // Width and height are set in network byte order.
+  const view = new DataView(IHDRData.buffer);
+  view.setUint32(0, width, false);
+  view.setUint32(4, height, false);
+
+  return IHDRData;
+}
+
+function makeIdatData(data, width, height) {
+  return pako.deflate(buildScanLines(data, width, height), { level: 9, strategy: 3 });
+}
+
+function buildQrPng({ data, background, color }) {
+  const height = data.length;
+  const width = height;
 
   const backgroundRgb = background.slice(0, 3);
   const backgroundAlpha = typeof background[3] === "number" ? background[3] : 255;
@@ -107,12 +119,12 @@ function buildQrPng({ data, background, color }) {
 
   return Uint8Array.of(
     ...PREAMBLE,
-    ...makeChunk('IHDR', IHDRData),
+    ...makeChunk('IHDR', makeHeaderData(width, height)),
     ...makeChunk('PLTE', [...backgroundRgb, ...colorRgb]),
     // When no colors in the palette have an associated alpha value, we can skip
     // the tRNS (transparency) chunk completely.
     ...(hasAlpha ? makeChunk("tRNS", [backgroundAlpha, colorAlpha]) : []), // alpha
-    ...makeChunk('IDAT', deflated),
+    ...makeChunk('IDAT', makeIdatData(data, width, height)),
     ...IEND
   );
 }
