@@ -19,10 +19,10 @@ const pngTypedArray = qrcode(options);
 
 The return value of `qrcode` is an instance of `Uint8Array`. If you're using it
 in Node.js, many core libraries will accept it as a substitute for a buffer. Any
-time you need a buffer you can wrap the `Uint8Array` in one:
+time you need a buffer you can wrap the `Uint8Array` in one without copying:
 
 ```javascript
-const pngBuffer = Buffer.from(qrcode(options));
+const pngBuffer = Buffer.from(qrcode(options).buffer);
 ```
 
 ## Options:
@@ -77,22 +77,12 @@ img.qr {
 }
 ```
 
-If you want to inline the png in your HTML, convert it to a data URL:
-
-In Node:
+If you want to inline the png in your HTML a convenience method is provided:
 
 ```javascript
-const pngBuffer = Buffer.from(qrcode("Hello, world!"));
-const dataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-```
-
-In a browser (also works in Node 16+, but it's [better to use a buffer]
-there):
-
-```javascript
-const pngTypedArray = qrcode("Hello, world!");
-const dataUrl = `data:image/png;base64,${atob(String.fromCharCode(...dat))}`;
+const dataUrl = qrcode("Hello, world!").toDataUrl();
 ```
 
 [qrcode-svg]: https://npmjs.com/package/qrcode-svg
+[pako]: https://npmjs.com/package/pako
 [better to use a buffer]: https://nodejs.org/dist/latest-v16.x/docs/api/globals.html#atobdata
