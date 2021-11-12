@@ -38,7 +38,7 @@ function makeChunk(name, data) {
 
   // Set the name bytes.
   for (let i = 0, len = name.length; i < len; i++) {
-    chunk[nameOffset + i] = name[i].charCodeAt(0);
+    chunk[nameOffset + i] = name.charCodeAt(i);
   }
 
   // Set the data bytes.
@@ -48,7 +48,7 @@ function makeChunk(name, data) {
   const crc = crc32(chunk.subarray(nameOffset, crcOffset));
 
   // Set the CRC bytes.
-  view.setUint32(crcOffset, crc);
+  view.setUint32(crcOffset, crc, false);
 
   return chunk;
 }
@@ -102,6 +102,34 @@ function makeIdatData(data, width, height) {
   return deflate(buildScanLines(data, width, height), { level: 9, strategy: 3 });
 }
 
+class SerializableUint8Array extends Uint8Array {
+  toHex() {
+    return Array.from(this, code => code.toString(16)).join('');
+  }
+
+  toBase64() {
+    // In Node a Buffer is the best way to get a base64 string, and we can do it
+    // without copying by passing Buffer.from the underlying ArrayBuffer.
+    /* eslint-disable no-undef */
+    if (typeof Buffer === 'function' && typeof Buffer.from === 'function') {
+      return Buffer.from(this.buffer).toString('base64');
+    }
+    /* eslint-enable no-undef */
+
+    // In a browser we fall back to using btoa. We're dealing strictly with 1
+    // byte characters so it's safe to use btoa in this case.
+
+    // String.fromCharCode can take more than one argument, so up to some length
+    // we could do String.fromCharCode(...this). It's risky for large values
+    // though!
+    return btoa(Array.from(this, code => String.fromCharCode(code)).join(''));
+  }
+
+  toDataUrl() {
+    return `data:image/png;base64,${this.toBase64()}`;
+  }
+}
+
 function buildQrPng({ data, background, color }) {
   const height = data.length;
   const width = height;
@@ -115,7 +143,7 @@ function buildQrPng({ data, background, color }) {
   // When no colors in the palette have an associated alpha value, we can skip
   // the tRNS (transparency) chunk completely.
 
-  return Uint8Array.of(
+  return SerializableUint8Array.of(
     ...PREAMBLE,
     ...makeChunk('IHDR', makeHeaderData(width, height)),
     ...makeChunk('PLTE', [...backgroundRgb, ...colorRgb]),
