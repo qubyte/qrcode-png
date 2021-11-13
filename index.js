@@ -180,18 +180,11 @@ function addPadding(modules, padding) {
   return data;
 }
 
-export default function makeQrPng(options) {
-  let qr;
-  let color = [0, 0, 0];
-  let background = [255, 255, 255];
-  let padding = 4;
-  let qrOptions;
+export default function makeQrPng(content, { color = [0, 0, 0], background = [255, 255, 255], padding = 4, ecl = 'M' } = {}) {
+  const qr = new QRCode({ content, ecl });
 
-  if (typeof options === 'string') {
-    qr = new QRCode(options);
-  } else {
-    ({ color = [0, 0, 0], background = [255, 255, 255], padding = 4, ...qrOptions } = options);
-    qr = new QRCode(qrOptions);
+  if (!content || typeof content !== 'string') {
+    throw new Error('content must be a string with length.');
   }
 
   if ((background.length !== 3 && background.length !== 4) || !background.every(isValidByte)) {

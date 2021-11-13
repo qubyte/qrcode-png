@@ -22,18 +22,22 @@ in Node.js, many core libraries will accept it as a substitute for a buffer. Any
 time you need a buffer you can wrap the `Uint8Array` in one without copying:
 
 ```javascript
-const pngBuffer = Buffer.from(qrcode(options).buffer);
+const pngBuffer = Buffer.from(qrcode(content, options).buffer);
 ```
 
-## Options:
+## `content`
 
-Options is a string (the content), or an object with these fields:
+`content` is the string you want encoded in the QR code. It must be a string
+with length greater than 0.
 
-* **content** - QR Code content, required.
+## `options`
+
+`options` is an optional object with these fields:
+
 * **padding** - Background colored padding around the QR code, `4` modules by default, `0` for no border.
-* **color** - color of modules (squares), a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[0, 0, 0]` for black.
-* **background** - color of background, a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[255, 255, 255]` for white.
-* **ecl** - error correction level: `L`, `M`, `H`, `Q`
+* **color** - color of modules (squares), a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[0, 0, 0]` for black. The default is black.
+* **background** - color of background, a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[255, 255, 255]` for white. The default is white.
+* **ecl** - error correction level: `L`, `M`, `H`, `Q`. Default `M`.
 
 ## Writing to a file
 
@@ -44,7 +48,7 @@ method.
 const fs = require('fs');
 const qrcode = require('qrcode-png');
 
-const pngTypedArray = qrcode(options);
+const pngTypedArray = qrcode(content);
 
 fs.writeFileSync('./my-qr-code.png', pngTypedArray);
 ```
