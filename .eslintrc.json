@@ -1,5 +1,5 @@
 {
-  "extends": "qubyte/ES2018-module",
+  "extends": "qubyte/ES2015-module",
   "env": {
     "browser": true
   },
