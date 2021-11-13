@@ -159,18 +159,38 @@ function isValidByte(n) {
   return Number.isInteger(n) && n >= 0 && n < 256;
 }
 
+function addPadding(modules, padding) {
+  const width = modules.length + padding * 2;
+  const pad = Array(padding).fill(false);
+  const data = [];
+
+  // Top padding rows.
+  for (let i = 0; i < padding; i++) {
+    data.push(Array(width).fill(false));
+  }
+  // Padded data rows.
+  for (const row of modules) {
+    data.push(pad.concat(row).concat(pad));
+  }
+  // Bottom padding rows.
+  for (let i = 0; i < padding; i++) {
+    data.push(Array(width).fill(false));
+  }
+
+  return data;
+}
+
 export default function makeQrPng(options) {
   let qr;
-  let color;
-  let background;
+  let color = [0, 0, 0];
+  let background = [255, 255, 255];
+  let padding = 4;
   let qrOptions;
 
   if (typeof options === 'string') {
     qr = new QRCode(options);
-    color = [0, 0, 0];
-    background = [255, 255, 255];
   } else {
-    ({ color = [0, 0, 0], background = [255, 255, 255], ...qrOptions } = options);
+    ({ color = [0, 0, 0], background = [255, 255, 255], padding = 4, ...qrOptions } = options);
     qr = new QRCode(qrOptions);
   }
 
@@ -182,7 +202,10 @@ export default function makeQrPng(options) {
     throw new Error('color must be a length 3 or 4 with elements in range 0-255.');
   }
 
-  const data = qr.qrcode.modules;
+  // While the padding option does the same (including the default) as in
+  // qrcode-svg, the padding isn't part of the data returned by that module,
+  // so it has to be added.
+  const data = addPadding(qr.qrcode.modules, padding);
 
   return buildQrPng({ data, background, color });
 }
