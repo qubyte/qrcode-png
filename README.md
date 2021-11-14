@@ -1,7 +1,9 @@
 # qrcode-png
 
 Make a QR code PNG from a string. This module uses the [qrcode-svg] module
-internally, and inherits some of its options.
+internally, and inherits some of its options. PNGs created by this library are
+more efficiently encoded than [those created by other package](#benchmarks)
+thanks to a PNG encoder designed for the specific use case of QR codes.
 
 ## Install
 
@@ -87,6 +89,25 @@ If you want to inline the png in your HTML a convenience method is provided:
 const dataUrl = qrcode("Hello, world!").toDataUrl();
 ```
 
+## Benchmarks
+
+In informal benchmarks against [`qrcode`][qrcode] (which provides similar
+functionality for PNG data URLS), this library generates URLs in about half the
+time and the results are about 25% of the size (a considerable saving) for the
+same error correction level. **No claim is made of a fair test!** If your use
+case is performance sensitive you should do your own analysis for your use case.
+
+Some speculation: The savings seen from this library are likely due to a
+combination of factors, but a large part is that this library uses color-type 3
+PNG encoding with a bit depth of 1 (a very compact representation).
+[`qrcode`][qrcode] uses [`pngjs`][pngjs], which does not support writing
+color-type 3 PNGs. [`qrcode`][qrcode] produces color-type 6 PNGs (truecolor with
+alpha), with a bit depth of 8 for a quick check using default options. Filters
+(which [`pngjs`][pngjs] has advanced behaviour for but which this library does
+not) may recover some of the space wasted by the higher bit depth.
+
 [qrcode-svg]: https://npmjs.com/package/qrcode-svg
 [pako]: https://npmjs.com/package/pako
 [better to use a buffer]: https://nodejs.org/dist/latest-v16.x/docs/api/globals.html#atobdata
+[qrcode]: https://npmjs.com/package/qrcode
+[pngjs]: https://npmjs.com/package/pngjs
