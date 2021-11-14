@@ -14,7 +14,7 @@ npm i qrcode-png
 ```javascript
 const qrcode = require('qrcode-png');
 
-const pngTypedArray = qrcode(options);
+const pngTypedArray = qrcode(content, options);
 ```
 
 The return value of `qrcode` is an instance of `Uint8Array`. If you're using it
