@@ -98,13 +98,14 @@ same error correction level. **No claim is made of a fair test!** If your use
 case is performance sensitive you should do your own analysis for your use case.
 
 Some speculation: The savings seen from this library are likely due to a
-combination of factors, but a large part is that this library uses color-type 3
-PNG encoding with a bit depth of 1 (a very compact representation).
-[`qrcode`][qrcode] uses [`pngjs`][pngjs], which does not support writing
-color-type 3 PNGs. [`qrcode`][qrcode] produces color-type 6 PNGs (truecolor with
-alpha), with a bit depth of 8 for a quick check using default options. Filters
-(which [`pngjs`][pngjs] has advanced behaviour for but which this library does
-not) may recover some of the space wasted by the higher bit depth.
+combination of factors, but a large part is that this library uses color-type 0
+(for the default black and white) or 3 for PNG encoding, in both cases with a
+bit depth of 1 (a very compact representation). [`qrcode`][qrcode] uses
+[`pngjs`][pngjs], which does not support writing color-type 3 PNGs.
+[`qrcode`][qrcode] produces color-type 6 PNGs (truecolor with alpha), with a bit
+depth of 8. Filters (which [`pngjs`][pngjs] has advanced behaviour for but which
+this library does not) may recover some of the space wasted by the higher bit
+depth.
 
 [qrcode-svg]: https://npmjs.com/package/qrcode-svg
 [pako]: https://npmjs.com/package/pako

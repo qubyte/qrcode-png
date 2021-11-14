@@ -79,12 +79,12 @@ function buildScanLines(data, width, height) {
   return buffer;
 }
 
-function makeHeaderData(width, height) {
+function makeHeaderData(width, height, isBlackAndWhite) {
   const IHDRData = Uint8Array.of(
     0, 0, 0, 0, // The width will go here.
     0, 0, 0, 0, // The height will go here.
     1, // bit depth (two possible pixel colors)
-    3, // color type 3 (palette)
+    isBlackAndWhite ? 0 : 3, // 0 is grayscale, 3 is palette.
     0, // compression
     0, // filter
     0 // interlace (off)
@@ -100,6 +100,14 @@ function makeHeaderData(width, height) {
 
 function makeIdatData(data, width, height) {
   return deflate(buildScanLines(data, width, height), { level: 9, strategy: 3 });
+}
+
+function invertData(data) {
+  for (let j = 0; j < data.length; j++) {
+    for (let i = 0; i < data[j].length; i++) {
+      data[j][i] = !data[j][i];
+    }
+  }
 }
 
 class SerializableUint8Array extends Uint8Array {
@@ -140,13 +148,22 @@ function buildQrPng({ data, background, color }) {
   const colorAlpha = typeof color[3] === 'number' ? color[3] : 255;
   const hasAlpha = backgroundAlpha !== 255 || colorAlpha !== 255;
 
+  // In the special case of black and white with no alpha, we can use a color
+  // type 0 (grayscale) with bit depth of 1. This lets us avoid a PLTE chunk,
+  // but means the data must be inverted.
+  const isBlackAndWhite = !hasAlpha && colorRgb.every(n => n === 0) && backgroundRgb.every(n => n === 255);
+
+  if (isBlackAndWhite) {
+    invertData(data);
+  }
+
   // When no colors in the palette have an associated alpha value, we can skip
   // the tRNS (transparency) chunk completely.
 
   return SerializableUint8Array.of(
     ...PREAMBLE,
-    ...makeChunk('IHDR', makeHeaderData(width, height)),
-    ...makeChunk('PLTE', [...backgroundRgb, ...colorRgb]),
+    ...makeChunk('IHDR', makeHeaderData(width, height, isBlackAndWhite)),
+    ...(isBlackAndWhite ? [] : makeChunk('PLTE', [...backgroundRgb, ...colorRgb])),
     // When no colors in the palette have an associated alpha value, we can skip
     // the tRNS (transparency) chunk completely.
     ...(hasAlpha ? makeChunk('tRNS', [backgroundAlpha, colorAlpha]) : []), // alpha
