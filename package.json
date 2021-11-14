@@ -11,6 +11,7 @@
   "files": [
     "index.cjs"
   ],
+  "repository": "github:qubyte/qrcode-png",
   "scripts": {
     "prepublishOnly": "rollup -c",
     "lint": "eslint .",
