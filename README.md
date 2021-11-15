@@ -2,8 +2,9 @@
 
 Make a QR code PNG from a string. This module uses the [qrcode-svg] module
 internally, and inherits some of its options. PNGs created by this library are
-more efficiently encoded than [those created by other package](#benchmarks)
-thanks to a PNG encoder designed for the specific use case of QR codes.
+more efficiently encoded than
+[those created by the most popular alternative](#benchmarks) thanks to a PNG
+encoder designed for the specific use case of QR codes.
 
 ## Install
 
@@ -19,9 +20,10 @@ const qrcode = require('qrcode-png');
 const pngTypedArray = qrcode(content, options);
 ```
 
-The return value of `qrcode` is an instance of `Uint8Array`. If you're using it
-in Node.js, many core libraries will accept it as a substitute for a buffer. Any
-time you need a buffer you can wrap the `Uint8Array` in one without copying:
+The return value of `qrcode` is an instance of [`Uint8Array`][Uint8Array]. If
+you're using it in Node.js, many core libraries will accept it as a substitute
+for a buffer. Any time you need a buffer you can wrap the `Uint8Array` in one
+without copying:
 
 ```javascript
 const pngBuffer = Buffer.from(qrcode(content, options).buffer);
@@ -107,6 +109,7 @@ depth of 8. Filters (which [`pngjs`][pngjs] has advanced behaviour for but which
 this library does not) may recover some of the space wasted by the higher bit
 depth.
 
+[Uint8Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
 [qrcode-svg]: https://npmjs.com/package/qrcode-svg
 [pako]: https://npmjs.com/package/pako
 [better to use a buffer]: https://nodejs.org/dist/latest-v16.x/docs/api/globals.html#atobdata

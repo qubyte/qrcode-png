@@ -198,10 +198,16 @@ function addPadding(modules, padding) {
 }
 
 export default function makeQrPng(content, { color = [0, 0, 0], background = [255, 255, 255], padding = 4, ecl = 'M' } = {}) {
-  const qr = new QRCode({ content, ecl });
-
   if (!content || typeof content !== 'string') {
     throw new Error('content must be a string with length.');
+  }
+
+  if (!Number.isInteger(padding) || padding < 0) {
+    throw new Error('padding must be an integer, 0 or greater.');
+  }
+
+  if (ecl !== 'L' && ecl !== 'M' && ecl !== 'H' && ecl !== 'Q') {
+    throw new Error('ecl must be "L", "M", "H", or "Q".');
   }
 
   if ((background.length !== 3 && background.length !== 4) || !background.every(isValidByte)) {
@@ -211,6 +217,8 @@ export default function makeQrPng(content, { color = [0, 0, 0], background = [25
   if ((color.length !== 3 && color.length !== 4) || !color.every(isValidByte)) {
     throw new Error('color must be a length 3 or 4 with elements in range 0-255.');
   }
+
+  const qr = new QRCode({ content, ecl });
 
   // While the padding option does the same (including the default) as in
   // qrcode-svg, the padding isn't part of the data returned by that module,
