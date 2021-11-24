@@ -16,9 +16,8 @@ for (let n = 0, c = 0; n < 256; ++n, c = n) {
 function crc32(buffer) {
   let crc32 = -1;
 
-  for (let i = 0, len = buffer.length; i < len; i++) {
-    const index = (crc32 ^ buffer[i]) & 255;
-    crc32 = (crc32 >>> 8) ^ crcTable[index];
+  for (const byte of buffer) {
+    crc32 = (crc32 >>> 8) ^ crcTable[(crc32 ^ byte) & 255];
   }
 
   crc32 ^= -1;

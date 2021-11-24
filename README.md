@@ -42,6 +42,7 @@ with length greater than 0.
 * **color** - color of modules (squares), a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[0, 0, 0]` for black. The default is black.
 * **background** - color of background, a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[255, 255, 255]` for white. The default is white.
 * **ecl** - error correction level: `L`, `M`, `H`, `Q`. Default `M`.
+* **deflate** - a deflate implementation such as Node's `zlib.deflateSync` or `pako.deflate`. Curry it with options you want it to use. By default a function is used which creates a valid PNG, but does not compress data, and it may be good enough for your purposes.
 
 ## Writing to a file
 
