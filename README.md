@@ -42,6 +42,7 @@ with length greater than 0.
 * **color** - color of modules (squares), a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[0, 0, 0]` for black. The default is black.
 * **background** - color of background, a length 3 (or 4 if you want to include alpha) array RGB values in the range 0-255, e.g. `[255, 255, 255]` for white. The default is white.
 * **ecl** - error correction level: `L`, `M`, `H`, `Q`. Default `M`.
+* **deflate** - a deflate implementation such as Node's `zlib.deflateSync` or `pako.deflate`. Curry it with options you want it to use. By default a function is used which creates a valid PNG, but does not compress data. You may find it sufficient.
 
 ## Writing to a file
 
@@ -57,11 +58,28 @@ const pngTypedArray = qrcode(content);
 fs.writeFileSync('./my-qr-code.png', pngTypedArray);
 ```
 
+## Customizing the deflate implementation
+
+It's possible (and enouraged in Node) to pass in a custom deflate function. For
+the browser, [pako] has a similar `deflate` function.
+
+```javascript
+const fs = require('fs');
+const zlib = require('zlib');
+const qrcode = require('qrcode-png');
+
+function deflate(buffer) {
+  return zlib.deflateSync(buffer, { level: zlib.constants.Z_BEST_COMPRESSION });
+}
+
+const pngTypedArray = qrcode(content, { deflate });
+```
+
 ## Use in the browser
 
-To use this library in the browser it must be bundled with [pako] and
-[qrcode-svg]. A bundler such as webpack or rollup with CommonJS and node module
-resolution plugins will do the job.
+A bundler such as webpack or rollup with CommonJS and node module resolution
+must be used to bundle the [qrcode-svg] module this package depends on. [pako]
+is recommended for better `deflate` compression.
 
 ## About the images produced
 
