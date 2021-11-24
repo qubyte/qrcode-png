@@ -1,6 +1,6 @@
 {
   "name": "qrcode-png",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Make a QR code PNG from a string.",
   "type": "module",
   "main": "index.js",
