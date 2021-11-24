@@ -20,7 +20,6 @@
   "author": "Mark S. Everitt",
   "license": "MIT",
   "dependencies": {
-    "pako": "^2.0.4",
     "qrcode-svg": "^1.1.0"
   },
   "devDependencies": {

@@ -1,4 +1,3 @@
-import { deflate } from 'pako';
 import QRCode from 'qrcode-svg';
 
 const PREAMBLE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
@@ -23,6 +22,45 @@ function crc32(buffer) {
   crc32 ^= -1;
 
   return crc32;
+}
+
+function adler32(buffer) {
+  let a = 1;
+  let b = 0;
+
+  for (const byte of buffer) {
+    a = (a + byte) % 65521;
+    b = (b + a) % 65521;
+  }
+
+  return b * 65536 + a;
+}
+
+/**
+ * A stand-in deflate function. This does not compress, but it does build a
+ * valid zlib deflated output. When compression matters it should be substituted
+ * for a full implementation of deflate. Limited to a buffer length no greater
+ * than 2 ** 16 bytes.
+ *
+ * @param {Uint8Array} buffer
+ */
+function deflateDefault(buffer) {
+  const deflated = Uint8Array.of(
+    0x78, 0x01, // no compression
+    // One block with all the data.
+    0b001, // 1 - final block, 00 - no compression, ...rest: junk
+    0, 0, // length
+    0, 0, // one's complement of length
+    ...buffer,
+    0, 0, 0, 0 // adler32
+  );
+  const view = new DataView(deflated.buffer);
+
+  view.setUint16(3, buffer.length, true);
+  view.setUint16(5, ~buffer.length, true);
+  view.setUint32(deflated.length - 4, adler32(buffer), false);
+
+  return deflated;
 }
 
 function makeChunk(name, data) {
@@ -97,8 +135,8 @@ function makeHeaderData(width, height, isBlackAndWhite) {
   return IHDRData;
 }
 
-function makeIdatData(data, width, height) {
-  return deflate(buildScanLines(data, width, height), { level: 9, strategy: 3 });
+function makeIdatData(data, width, height, deflate) {
+  return deflate(buildScanLines(data, width, height));
 }
 
 function invertData(data) {
@@ -137,7 +175,7 @@ class SerializableUint8Array extends Uint8Array {
   }
 }
 
-function buildQrPng({ data, background, color }) {
+function buildQrPng({ data, background, color, deflate }) {
   const height = data.length;
   const width = height;
 
@@ -166,7 +204,7 @@ function buildQrPng({ data, background, color }) {
     // When no colors in the palette have an associated alpha value, we can skip
     // the tRNS (transparency) chunk completely.
     ...(hasAlpha ? makeChunk('tRNS', [backgroundAlpha, colorAlpha]) : []), // alpha
-    ...makeChunk('IDAT', makeIdatData(data, width, height)),
+    ...makeChunk('IDAT', makeIdatData(data, width, height, deflate)),
     ...IEND
   );
 }
@@ -196,7 +234,10 @@ function addPadding(modules, padding) {
   return data;
 }
 
-export default function makeQrPng(content, { color = [0, 0, 0], background = [255, 255, 255], padding = 4, ecl = 'M' } = {}) {
+export default function makeQrPng(
+  content,
+  { color = [0, 0, 0], background = [255, 255, 255], padding = 4, ecl = 'M', deflate = deflateDefault } = {}
+) {
   if (!content || typeof content !== 'string') {
     throw new Error('content must be a string with length.');
   }
@@ -224,5 +265,5 @@ export default function makeQrPng(content, { color = [0, 0, 0], background = [25
   // so it has to be added.
   const data = addPadding(qr.qrcode.modules, padding);
 
-  return buildQrPng({ data, background, color });
+  return buildQrPng({ data, background, color, deflate });
 }
