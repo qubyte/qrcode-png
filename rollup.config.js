@@ -7,6 +7,6 @@ export default {
     format: 'cjs',
     exports: 'default'
   },
-  external: ['pako', 'qrcode-svg'],
+  external: ['qrcode-svg'],
   plugins: [commonjs()]
 };
