@@ -2,13 +2,16 @@ import QRCode from 'qrcode-svg';
 
 const PREAMBLE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
 const IEND = Uint8Array.of(0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130);
-const crcTable = new Int32Array(256);
+const crcTable = new Uint32Array(256);
 
 // http://www.libpng.org/pub/png/spec/1.2/PNG-CRCAppendix.html
-for (let n = 0, c = 0; n < 256; ++n, c = n) {
-  for (let m = 0; m < 8; m++) {
+for (let n = 0; n < 256; n++) {
+  let c = n;
+
+  for (let k = 0; k < 8; k++) {
     c = (c & 1) ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
   }
+
   crcTable[n] = c;
 }
 
