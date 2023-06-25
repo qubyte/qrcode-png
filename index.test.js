@@ -1,4 +1,5 @@
-import { strict as assert } from 'assert';
+import { describe, before, it } from 'node:test';
+import { strict as assert } from 'node:assert';
 import qrcodePng from 'qrcode-png';
 import jsQR from 'jsqr';
 import { fromPng } from '@rgba-image/png';
