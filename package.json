@@ -24,10 +24,11 @@
   },
   "devDependencies": {
     "@rgba-image/png": "^0.1.1",
-    "@rollup/plugin-commonjs": "^25.0.2",
-    "eslint": "^8.43.0",
-    "eslint-config-qubyte": "^5.0.0",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "eslint": "^8.52.0",
+    "eslint-config-qubyte": "^6.0.0",
+    "globals": "^13.23.0",
     "jsqr": "^1.4.0",
-    "rollup": "^3.25.2"
+    "rollup": "^4.1.4"
   }
 }
