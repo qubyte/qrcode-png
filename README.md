@@ -1,3 +1,5 @@
+This repository has been [moved to codeberg](https://codeberg.org/qubyte/qrcode-png.git).
+
 # qrcode-png
 
 Make a QR code PNG from a string. This module uses the [qrcode-svg] module
